@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">L2Meta Сканер</string>
+    <string name="service_name">L2Meta Сканер ринку</string>
+    <string name="service_description">Показує кнопку «Скан» поверх гри, робить скріншоти вікна аукціону і натискає кнопки, щоб зібрати ціни продажу та скупки.</string>
+</resources>
