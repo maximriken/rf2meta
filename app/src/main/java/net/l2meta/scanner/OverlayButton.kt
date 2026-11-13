@@ -14,12 +14,14 @@ import kotlin.math.abs
 
 /**
  * Плаваюча кнопка поверх гри. Її можна перетягувати пальцем.
+ * Коротке натискання — onClick, утримання 0.6 с — onLongClick.
  * Використовує тип вікна TYPE_ACCESSIBILITY_OVERLAY, тому окремий дозвіл
  * «Показ поверх інших застосунків» не потрібен.
  */
 class OverlayButton(
     private val ctx: Context,
     private val onClick: () -> Unit,
+    private val onLongClick: () -> Unit,
 ) {
     private val wm = ctx.getSystemService(WindowManager::class.java)
     private var shown = false
@@ -83,6 +85,7 @@ class OverlayButton(
         var touchX = 0f
         var touchY = 0f
         var moved = false
+        var downAt = 0L
         val slop = dp(8)
 
         view.setOnTouchListener { _, e ->
@@ -93,6 +96,7 @@ class OverlayButton(
                     touchX = e.rawX
                     touchY = e.rawY
                     moved = false
+                    downAt = e.eventTime
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
@@ -107,7 +111,10 @@ class OverlayButton(
                     true
                 }
                 MotionEvent.ACTION_UP -> {
-                    if (!moved) onClick()
+                    if (!moved) {
+                        // Утримання понад 0.6 с — довге натискання (просто скріншот).
+                        if (e.eventTime - downAt >= 600) onLongClick() else onClick()
+                    }
                     true
                 }
                 else -> false
