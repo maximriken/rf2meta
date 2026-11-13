@@ -11,8 +11,8 @@ android {
         applicationId = "net.l2meta.scanner"
         minSdk = 30          // takeScreenshot() з AccessibilityService з'явився в Android 11
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.2"
+        versionCode = 3
+        versionName = "0.3"
     }
 
     // Постійний ключ підпису: кожна нова збірка ставиться поверх старої без видалення.

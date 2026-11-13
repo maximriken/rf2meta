@@ -12,7 +12,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -22,7 +21,6 @@ import java.util.Locale
  *
  * Натискання «Скан»: якщо відкрите вікно Adventure Guildsman — програма сама
  * натискає «Список продаваемых товаров» і перевіряє, що відкрилось вікно категорій.
- * Довге натискання «Скан»: просто зберегти скріншот у «Завантаження/L2Meta».
  */
 class ScannerService : AccessibilityService() {
 
@@ -32,11 +30,7 @@ class ScannerService : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
-        overlay = OverlayButton(
-            this,
-            onClick = { onScanClick() },
-            onLongClick = { onScreenshotClick() },
-        ).also { it.show() }
+        overlay = OverlayButton(this) { onScanClick() }.also { it.show() }
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) = Unit
@@ -49,12 +43,15 @@ class ScannerService : AccessibilityService() {
         super.onDestroy()
     }
 
-    /** Звичайне натискання: відкрити «Список продаваемых товаров». */
+    /**
+     * Натискання «Скан»: у вікні Adventure Guildsman натиснути
+     * «Список продаваемых товаров». Екран лише перевіряється, файли не зберігаються.
+     */
     private fun onScanClick() = runTask {
         val screen = capture()
         when {
             Guildsman.isSellCategories(screen) ->
-                toast("Список продаваемых товаров уже відкрито")
+                toast("«Список продаваемых товаров» уже відкрито")
 
             Guildsman.isMainMenu(screen) -> {
                 val spot = Guildsman.SELL_LIST_LINK
@@ -62,22 +59,12 @@ class ScannerService : AccessibilityService() {
                 if (waitFor { Guildsman.isSellCategories(it) }) {
                     toast("✅ Відкрито «Список продаваемых товаров»")
                 } else {
-                    val name = saveScreenshot("fail_sell")
-                    toast("❌ Вікно не відкрилось. Скрін для перевірки: $name.png")
+                    toast("❌ Не вдалося відкрити «Список продаваемых товаров»")
                 }
             }
 
-            else -> {
-                val name = saveScreenshot("unknown")
-                toast("Відкрийте вікно Adventure Guildsman і натисніть «Скан» ще раз. (скрін: $name.png)")
-            }
+            else -> toast("Спочатку відкрийте вікно Adventure Guildsman")
         }
-    }
-
-    /** Довге натискання: просто зберегти скріншот. */
-    private fun onScreenshotClick() = runTask {
-        val name = saveScreenshot("screen")
-        toast("Збережено: Завантаження/L2Meta/$name.png")
     }
 
     /** Чекає, поки на екрані з'явиться потрібне вікно (до timeoutMs). */
@@ -91,21 +78,6 @@ class ScannerService : AccessibilityService() {
     }
 
     private suspend fun capture(): Bitmap = Screenshots.capture(this)
-
-    /** Скріншот без кнопки «Скан» на ньому. Повертає назву файлу без .png. */
-    private suspend fun saveScreenshot(prefix: String): String {
-        val btn = overlay
-        btn?.setVisible(false)
-        delay(400)
-        val bmp = try {
-            capture()
-        } finally {
-            btn?.setVisible(true)
-        }
-        val name = "${prefix}_" + timestamp()
-        withContext(Dispatchers.IO) { FileStore.savePng(this@ScannerService, bmp, name) }
-        return name
-    }
 
     /** Запускає дію; повторне натискання під час роботи — зупинка. */
     private fun runTask(block: suspend () -> Unit) {
